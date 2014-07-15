@@ -45,7 +45,18 @@ def rem_dir_from_path(psse_path):
         os.environ.update({'PATH': ';'.join(sys_paths)})
 
 def _get_psse_locations_dict():
-    pti_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\PTI')
+    pti_key = None
+    try:
+        pti_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\PTI')
+    except WindowsError:
+        pass
+
+    if not pti_key:
+        try:
+            pti_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
+                                      'SOFTWARE\\Wow6432Node\\PTI')
+        except WindowsError:
+            raise PsseImportError('No installs of PSSE found')
 
     pssbin_paths = {}
 
@@ -198,8 +209,20 @@ def get_required_python_ver(pssbin):
     return pyc_magic_nums[magic][:3]
 
 def _get_python_locations_dict():
-    python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
+    python_key = None
+    try:
+        python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
             'SOFTWARE\\Python\\PythonCore')
+    except:
+        pass
+
+    if not python_key:
+        try:
+            python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
+                'SOFTWARE\\Wow6432Node\\Python\\PythonCore')
+        except:
+            raise PsseImportError('PythonCore can not be found')
+
 
     python_paths = {}
 
