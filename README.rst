@@ -87,7 +87,7 @@ required Python for the particular PSSE install.
 
 Currently running
     indicates that the Python version used to invoke the script
-    ("c:\Python25\python" if invoked as "c:\Python25\python -m pssepath") is
+    (``c:\Python25\python`` if invoked as ``c:\Python25\python -m pssepath``) is
     appropriate for that version.
     
 Installed
