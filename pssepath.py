@@ -210,34 +210,26 @@ def get_required_python_ver(pssbin):
 
 def _get_python_locations_dict():
     python_key = None
-    try:
-        python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
-            'SOFTWARE\\Python\\PythonCore')
-    except:
-        pass
-
-    if not python_key:
-        try:
-            python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
-                'SOFTWARE\\Wow6432Node\\Python\\PythonCore')
-        except:
-            raise PsseImportError('PythonCore can not be found')
-
-
     python_paths = {}
+    reg_nodes = [
+        _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\Python\\PythonCore'),
+        _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, 'SOFTWARE\\Python\\PythonCore'),
+        _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\Wow6432Node\\Python\\PythonCore'),
+            ]
 
-    sub_key_cnt = _winreg.QueryInfoKey(python_key)[0]
-    for i in range(sub_key_cnt):
-        sub_key = _winreg.EnumKey(python_key, i)
-        try:
-            ver_key = _winreg.OpenKey(python_key, sub_key + '\\InstallPath')
-        except WindowsError:
-            pass
-        else:
-            # Version num is the last 2 digits of the subkey
-            version_num = sub_key
-            path = _winreg.QueryValue(ver_key, None)
-            python_paths[version_num] = path
+    for python_key in reg_nodes:
+        sub_key_cnt = _winreg.QueryInfoKey(python_key)[0]
+        for i in range(sub_key_cnt):
+            sub_key = _winreg.EnumKey(python_key, i)
+            try:
+                ver_key = _winreg.OpenKey(python_key, sub_key + '\\InstallPath')
+            except WindowsError:
+                pass
+            else:
+                # Version num is the last 2 digits of the subkey
+                version_num = sub_key
+                path = _winreg.QueryValue(ver_key, None)
+                python_paths[version_num] = path
 
     if not len(python_paths):
         raise PsseImportError('No installs of Python found... wait how are you'
