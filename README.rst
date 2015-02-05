@@ -41,6 +41,10 @@ To install from source::
 
     python setup.py install
 
+To build the windows binary installer::
+
+    python setup.py bdist --format=wininst
+    
 Usage
 ------
 pssepath provides 3 methods for setting up the PSSE paths:
