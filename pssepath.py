@@ -3,6 +3,9 @@ import sys
 from textwrap import dedent
 import _winreg
 
+# plays nicer with NaN 
+os.environ['FPMASK'] = '59'
+
 class PsseImportError(Exception):
     pass
 
@@ -110,7 +113,18 @@ def rem_dir_from_path(psse_path):
         os.environ['PATH'] = ';'.join(sys_paths)
 
 def _get_psse_locations_dict():
-    pti_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\PTI')
+    pti_key = None
+    try:
+        pti_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\PTI')
+    except WindowsError:
+        pass
+
+    if not pti_key:
+        try:
+            pti_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
+                                      'SOFTWARE\\Wow6432Node\\PTI')
+        except WindowsError:
+            raise PsseImportError('No installs of PSSE found')
 
     pssbin_paths = {}
 
@@ -151,6 +165,9 @@ def add_pssepath(pref_ver=None):
 
     Try to import the requested version of PSSE. If the requested version
     doesn't work, raise an exception. By default, import the latest version.
+
+    :param pref_ver: Preferred version number.  This is an integer, may be 32,
+    33, 34.  PSSE v34 may have issues with this tool
     """
     if pref_ver:
         if pref_ver in pssbin_paths.keys():
@@ -195,7 +212,9 @@ def add_pssepath(pref_ver=None):
     global initialized, psse_version, req_python_exec
     psse_version = selected_ver
     req_python_ver = get_required_python_ver(selected_path)
-    req_python_exec = os.path.join(python_paths[req_python_ver],'python.exe')
+    # This fails if we can't find a python in the registry.  But python 
+    # doesn't have to be registered.
+    #req_python_exec = os.path.join(python_paths[req_python_ver],'python.exe')
     initialized = True
 
 @check_initialized
@@ -222,6 +241,8 @@ def select_pssepath():
     global initialized, psse_version, req_python_exec
     psse_version = versions[user_input - 1]
     req_python_ver = get_required_python_ver(selected_path)
+
+    # Remember that python might not be in the registry.
     req_python_exec = os.path.join(python_paths[req_python_ver],'python.exe')
     initialized = True
 
@@ -271,8 +292,20 @@ def get_required_python_ver(pssbin):
     return pyc_magic_nums[magic][:3]
 
 def _get_python_locations_dict():
-    python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
+    python_key = None
+    try:
+        python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
             'SOFTWARE\\Python\\PythonCore')
+    except:
+        pass
+
+    if not python_key:
+        try:
+            python_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
+                'SOFTWARE\\Wow6432Node\\Python\\PythonCore')
+        except:
+            raise PsseImportError('PythonCore can not be found')
+
 
     python_paths = {}
 
@@ -296,7 +329,6 @@ def _get_python_locations_dict():
     _winreg.CloseKey(ver_key)
     _winreg.CloseKey(python_key)
     return python_paths
-
 
 #####
 ##### Execution starts here on import
@@ -367,6 +399,7 @@ pssbin_paths = _get_psse_locations_dict()
 python_paths = _get_python_locations_dict()
 psse_version = None
 req_python_exec = None
+#req_python_version = (None, None)
 ignore_python_mismatch = False
 initialized = False
 if check_psspy_already_in_path():
@@ -386,6 +419,7 @@ if check_psspy_already_in_path():
     req_python = get_required_python_ver(probable_folder)
 
     if req_python != sys.winver:
+        # TODO: Fail hard in this case.  Do not try to recover.
         print ("WARNING: you have started a Python %s session when the\n"
                 "version required by the PSSE available in your path is\n"
                 "Python %s.\n"
@@ -397,12 +431,14 @@ if check_psspy_already_in_path():
                     sys.executable))
 
         try:
+            # Why do we 
             req_python_exec = os.path.join(python_paths[req_python],
                     'python.exe')
         except KeyError:
             # Very unlikely
             # Don't have the required version of python to run this version of
-            # psse.  Something is not right...
+            # psse.  
+            # Why do we care if the python is in the registry?
             print ("Required version of python (%s) not located in registry.\n"
                     % (req_python,))
     else:
