@@ -2,6 +2,9 @@ import os
 import sys
 import _winreg
 
+# plays nicer with NaN 
+os.environ['FPMASK'] = '59'
+
 class PsseImportError(Exception):
     pass
 
@@ -97,6 +100,9 @@ def add_pssepath(pref_ver=None):
 
     Try to import the requested version of PSSE. If the requested version
     doesn't work, raise an exception. By default, import the latest version.
+
+    :param pref_ver: Preferred version number.  This is an integer, may be 32,
+    33, 34.  PSSE v34 may have issues with this tool
     """
     if pref_ver:
         if pref_ver in pssbin_paths.keys():
@@ -141,7 +147,9 @@ def add_pssepath(pref_ver=None):
     global initialized, psse_version, req_python_exec
     psse_version = selected_ver
     req_python_ver = get_required_python_ver(selected_path)
-    req_python_exec = os.path.join(python_paths[req_python_ver],'python.exe')
+    # This fails if we can't find a python in the registry.  But python 
+    # doesn't have to be registered.
+    #req_python_exec = os.path.join(python_paths[req_python_ver],'python.exe')
     initialized = True
 
 @check_initialized
@@ -168,6 +176,8 @@ def select_pssepath():
     global initialized, psse_version, req_python_exec
     psse_version = versions[user_input - 1]
     req_python_ver = get_required_python_ver(selected_path)
+
+    # Remember that python might not be in the registry.
     req_python_exec = os.path.join(python_paths[req_python_ver],'python.exe')
     initialized = True
 
@@ -255,6 +265,8 @@ pyc_magic_nums = {20121: '1.5', 20121: '1.5.1', 20121: '1.5.2', 50428: '1.6',
                   62091: '2.5a0', 62092: '2.5a0', 62101: '2.5b3',
                   62111: '2.5b3', 62121: '2.5c1', 62131: '2.5c2',
                   62151: '2.6a0', 62161: '2.6a1', 62171: '2.7a0',
+                  62181: '2.7a0', 62191: '2.7a0', 62201: '2.7a0', 
+                  62211: '2.7a0', 
             }
 
 
@@ -263,6 +275,7 @@ pssbin_paths = _get_psse_locations_dict()
 python_paths = _get_python_locations_dict()
 psse_version = None
 req_python_exec = None
+#req_python_version = (None, None)
 ignore_python_mismatch = False
 initialized = False
 if check_psspy_already_in_path():
@@ -282,6 +295,7 @@ if check_psspy_already_in_path():
     req_python = get_required_python_ver(probable_folder)
 
     if req_python != sys.winver:
+        # TODO: Fail hard in this case.  Do not try to recover.
         print ("WARNING: you have started a Python %s session when the\n"
                 "version required by the PSSE available in your path is\n"
                 "Python %s.\n"
@@ -293,12 +307,14 @@ if check_psspy_already_in_path():
                     sys.executable))
 
         try:
+            # Why do we 
             req_python_exec = os.path.join(python_paths[req_python],
                     'python.exe')
         except KeyError:
             # Very unlikely
             # Don't have the required version of python to run this version of
-            # psse.  Something is not right...
+            # psse.  
+            # Why do we care if the python is in the registry?
             print ("Required version of python (%s) not located in registry.\n"
                     % (req_python,))
     else:
