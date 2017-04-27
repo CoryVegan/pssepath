@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 import sys
 from textwrap import dedent
 import _winreg
@@ -95,7 +96,20 @@ def add_dir_to_path(psse_path):
 
     This is all side-effects which is not the prettiest.
     """
-    sys.path.insert(0, psse_path)
+    if 'PSSE34' in psse_path.upper():
+        psslib = osp.abspath(osp.join(psse_path, os.pardir, 'PSSLIB'))
+        psspy27 = osp.abspath(osp.join(psse_path, os.pardir, 'PSSPY27'))
+
+        # Python Path
+        sys.path.insert(0, psspy27)
+        #sys.path.insert(0, psslib)
+
+        # OS Path
+        os.environ['PATH'] = psslib + ';' + os.environ['PATH']
+        #os.environ['PATH'] = psslib + ';' + os.environ['PATH']
+
+
+    #sys.path.insert(0, psse_path)
     os.environ['PATH'] = psse_path + ';' + os.environ['PATH']
 
 def rem_dir_from_path(psse_path):
@@ -104,13 +118,19 @@ def rem_dir_from_path(psse_path):
     list.remove(bla) will always remove the first instance of bla from the
     list. Thus this will reverse any changes done by add_dir_to_path().
     """
+    psslib = osp.abspath(osp.join(psse_path, os.pardir, 'PSSLIB'))
 
-    if psse_path in sys.path:
-        sys.path.remove(psse_path)
-    if psse_path in os.environ['PATH']:
-        sys_paths = os.environ['PATH'].split(';')
-        sys_paths.remove(psse_path)
-        os.environ['PATH'] = ';'.join(sys_paths)
+    def remove_path(path):
+        if path in sys.path:
+            sys.path.remove(path)
+        if path in os.environ['PATH']:
+            sys_paths = os.environ['PATH'].split(';')
+            sys_paths.remove(path)
+            os.environ['PATH'] = ';'.join(sys_paths)
+
+    remove_path(psslib)
+    remove_path(psse_path)
+
 
 def _get_psse_locations_dict():
     pti_key = None
@@ -282,10 +302,21 @@ def find_file_on_path(fname, dir_checklist=None):
             return potential_file
 
 def get_required_python_ver(pssbin):
-    probable_pyc = os.path.join(pssbin,'psspy.pyc')
+    if 'PSSE34' in pssbin.upper():
+        pyc_dir = osp.join(pssbin, os.pardir, 'PSSPY27')
+    else:
+        pyc_dir = pssbin
+
+    if not osp.exists(pyc_dir):
+        raise IOError("Can't find the pyc dir")
+
+    probable_pyc = os.path.join(pyc_dir, 'psspy.pyc')
     if not os.path.isfile(probable_pyc):
         # not in the suspected dir, perhaps abnormal install.
         probable_pyc = find_file_on_path('psspy.pyc')
+
+    if probable_pyc is None:
+        raise IOError("Can't find psspy.pyc")
 
     magic = read_magic_number(probable_pyc)
     # only the first 3 digits are important (2.x etc)
