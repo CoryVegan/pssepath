@@ -4,6 +4,7 @@ import sys
 from textwrap import dedent
 import _winreg
 
+__version__ == '0.8'
 # plays nicer with NaN 
 os.environ['FPMASK'] = '59'
 
