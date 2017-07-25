@@ -1,10 +1,20 @@
+"""
+Setup PSSE python.
+
+Typically this looks like::
+
+    PSSBINPATH = r"C:\Program Files (x86)\PTI\PSSE33\PSSBIN"
+    os.environ['PATH'] = PSSBINPATH + ';' + os.environ['PATH']
+    sys.path.insert(0, PSSBINPATH)
+
+"""
 import os
 import os.path as osp
 import sys
 from textwrap import dedent
 import _winreg
 
-__version__ == '0.8'
+__version__ = '0.9'
 # plays nicer with NaN 
 os.environ['FPMASK'] = '59'
 
@@ -109,8 +119,10 @@ def add_dir_to_path(psse_path):
         os.environ['PATH'] = psslib + ';' + os.environ['PATH']
         #os.environ['PATH'] = psslib + ';' + os.environ['PATH']
 
+    else:
+        # For PSSE 33, the psse_path is PSSBIN
+        sys.path.insert(0, psse_path)
 
-    #sys.path.insert(0, psse_path)
     os.environ['PATH'] = psse_path + ';' + os.environ['PATH']
 
 def rem_dir_from_path(psse_path):
