@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(name='pssepath',
         description='A module to detect and setup paths required for Python for PSSE operation.',
-        author='Daniel Hillier',
+        author='Daniel Hillier, Chip Webber',
         py_modules=['pssepath'],
-        version='0.8',
+        version='0.9',
         )
